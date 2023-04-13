@@ -1,12 +1,14 @@
-import matplotlib as plt
-import numpy as np
 import nltk
 from nltk.corpus import twitter_samples
 from nltk.tag import pos_tag # It helps determining context of words
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
+from nltk import classify
+from nltk import NaiveBayesClassifier
+from nltk.tokenize import word_tokenize
 import re
 import string
+from random import shuffle
 
 # Print tweets in different json files to string format
 positive_tweets = twitter_samples.strings('positive_tweets.json')
@@ -31,15 +33,63 @@ def remove_noise(tokens, stopWords = stopwords.words('english')):
             pos = 'a'
         
         lemmatizer = WordNetLemmatizer()
-        norm_token = lemmatizer.lemmatize(norm_token,pos).lower
+        norm_token = lemmatizer.lemmatize(norm_token,pos).lower()
         
         # If the normalized token is not empty and is nor a punctuation sign neither a stop word, we include it as a cleaned token
         if len(norm_token)>0 and token not in string.punctuation and token not in stopWords:
             cleaned_tokens.append(norm_token)
         
     return cleaned_tokens
-     
+
+# We tokenize and clean all positive and negative tweets
+pos_tweet_tokens = twitter_samples.tokenized('positive_tweets.json')
+pos_cleaned_tokens = []
+for tokens in pos_tweet_tokens:
+    pos_cleaned_tokens.append(remove_noise(tokens))
 
 
+neg_tweet_tokens = twitter_samples.tokenized('negative_tweets.json')
+neg_cleaned_tokens = []
+for tokens in neg_tweet_tokens:
+    neg_cleaned_tokens.append(remove_noise(tokens))
+
+# Now we're going to see what the most frequent words are. First, we create a generator function to get all the words in the different tweets
+
+def get_all_words(token_list):
+    for tokens in token_list:
+        for token in tokens:
+            yield token
+
+
+
+ # As we're going to use Naive Bayes Classifier, we need to express the data in a suitable format to train the model.
+ # Naive Bayes Classifier asks for a dictionary with keys as tokens and True as values.
+def prepare_tweets(token_list):
+    for tokens in token_list:
+        yield dict([token, True] for token in tokens)
+
+prepared_pos = prepare_tweets(pos_cleaned_tokens)
+prepared_neg = prepare_tweets(neg_cleaned_tokens)
+
+
+# We label each dataset and concatenate them to build the final dataset
+pos_dataset = [(dic, "Positive") for dic in prepared_pos]
+neg_dataset = [(dic, "Negative") for dic in prepared_neg]
+dataset = pos_dataset + neg_dataset
+
+# We shuffle the dataset to avoid bias and split it into train (70%) and validation (30%) sets (it is 10000 tweets long)
+shuffle(dataset)
+train_set = dataset[:7000]
+test_set = dataset[7000:]
+
+# We define and train the classifier using Naive Bayes classifier, and then we check the accuracy of the model
+classifier = NaiveBayesClassifier.train(train_set)
+#print("Accuracy is:", classify.accuracy(classifier, test_set))
+#print(classifier.show_most_informative_features(10))  # This statement prints the top 10 most relevant tokens to the model
+
+# We can try the model with a custom tweet
+custom_tweet = "I don't even know what I did wrong to deserve this"
+prepared_custom_tokens = remove_noise(word_tokenize(custom_tweet))
+print(classifier.classify(dict([token, True] for token in prepared_custom_tokens)))
 
 
