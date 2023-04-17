@@ -9,6 +9,7 @@ from nltk.tokenize import word_tokenize
 import re
 import string
 from random import shuffle
+from random import randint
 
 # Print tweets in different json files to string format
 positive_tweets = twitter_samples.strings('positive_tweets.json')
@@ -88,8 +89,23 @@ classifier = NaiveBayesClassifier.train(train_set)
 #print(classifier.show_most_informative_features(10))  # This statement prints the top 10 most relevant tokens to the model
 
 # We can try the model with a custom tweet
-custom_tweet = "I don't even know what I did wrong to deserve this"
-prepared_custom_tokens = remove_noise(word_tokenize(custom_tweet))
-print(classifier.classify(dict([token, True] for token in prepared_custom_tokens)))
+def analyzeCustomTweet(custom_tweet):
+    prepared_custom_tokens = remove_noise(word_tokenize(custom_tweet))
+    print("Custom tweet: "+custom_tweet)
+    print("Random tweet score: "+classifier.classify(dict([token, True] for token in prepared_custom_tokens)))
+
+custom_tweet = "I love being in this place"
+analyzeCustomTweet(custom_tweet)
+
+# We also define a function to analyze a random tweet from the unlabeled tweets dataset
+def analyzeRandomTweet():
+    x = randint(0,len(unlabeled_tweets)-1)
+    random_tweet = unlabeled_tweets[x]
+    prepared_random_tokens = remove_noise(word_tokenize(random_tweet))
+    print("Tweet chosen at random: "+random_tweet)
+    print("Random tweet score: "+classifier.classify(dict([token, True] for token in prepared_random_tokens)))
+ 
+analyzeRandomTweet()
+
 
 
